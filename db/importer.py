@@ -111,11 +111,24 @@ def _prepare_dataframe(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def read_uploaded_file(file_name: str, content: bytes) -> pd.DataFrame:
-    """读取 CSV/XLSX；CSV 依次尝试 UTF-8 与 GBK。"""
+    """读取 CSV/XLSX；CSV 依次尝试多种编码。"""
     suffix = Path(file_name).suffix.lower()
     if suffix == ".csv":
         errors = []
-        for encoding in ("utf-8-sig", "gbk"):
+        # 常见中文 CSV 编码：带 BOM 的 UTF-8、UTF-8、GBK、GB18030、UTF-16 LE/BE
+        encodings_to_try = [
+            "utf-8-sig",
+            "utf-8",
+            "gb18030",
+            "gbk",
+            "gb2312",
+            "utf-16",
+            "utf-16-le",
+            "utf-16-be",
+            "big5",
+            "latin-1",
+        ]
+        for encoding in encodings_to_try:
             try:
                 df = pd.read_csv(
                     BytesIO(content),
@@ -123,13 +136,30 @@ def read_uploaded_file(file_name: str, content: bytes) -> pd.DataFrame:
                     dtype=str,
                     keep_default_na=False,
                 )
+                # 成功读完后检查一下是不是乱码（如果所有列名都是 \uXXXX 或全问号）
+                columns_text = " ".join(df.columns.astype(str))
+                if "\ufffd" in columns_text or columns_text.count("?") > len(df.columns) * 0.5:
+                    errors.append(f"{encoding}: 列名疑似乱码，跳过")
+                    continue
                 return _prepare_dataframe(df)
             except (UnicodeDecodeError, UnicodeError) as exc:
-                errors.append(str(exc))
+                errors.append(f"{encoding}: {exc}")
             except pd.errors.ParserError as exc:
-                errors.append(str(exc))
+                errors.append(f"{encoding}: {exc}")
+        # 最后兜底：用 errors='replace' 强行读
+        try:
+            df = pd.read_csv(
+                BytesIO(content),
+                encoding="utf-8",
+                encoding_errors="replace",
+                dtype=str,
+                keep_default_na=False,
+            )
+            return _prepare_dataframe(df)
+        except Exception as exc:
+            errors.append(f"utf-8+replace: {exc}")
         raise ValueError(
-            "CSV 读取失败，已尝试 UTF-8 和 GBK 编码，请检查文件编码或格式。"
+            f"CSV 读取失败，已尝试多种编码：{', '.join(errors[:3])}..."
         ) from None
 
     if suffix == ".xlsx":
