@@ -1,0 +1,51 @@
+[
+  {
+    "account_id": "douyin_01",
+    "platform": "douyin",
+    "account_name": "阿拉丁神花-青实高国际崽们的的惊喜特派员",
+    "account_group": "阿拉丁神花",
+    "status": "active"
+  },
+  {
+    "account_id": "douyin_02",
+    "platform": "douyin",
+    "account_name": "QEHSI青实高国际",
+    "account_group": "QEHSI青实高国际",
+    "status": "active"
+  },
+  {
+    "account_id": "douyin_03",
+    "platform": "douyin",
+    "account_name": "实高国际(校内出分版)",
+    "account_group": "实高国际出分版",
+    "status": "active"
+  },
+  {
+    "account_id": "wechat_video_01",
+    "platform": "wechat_video",
+    "account_name": "青实高国际",
+    "account_group": "QEHSI青实高国际",
+    "status": "active"
+  },
+  {
+    "account_id": "wechat_video_02",
+    "platform": "wechat_video",
+    "account_name": "实高国际-校内出分版",
+    "account_group": "实高国际出分版",
+    "status": "active"
+  },
+  {
+    "account_id": "wechat_video_03",
+    "platform": "wechat_video",
+    "account_name": "阿拉丁神花青实高国际崽们的的惊喜特派员",
+    "account_group": "阿拉丁神花",
+    "status": "active"
+  },
+  {
+    "account_id": "wechat_mp_01",
+    "platform": "wechat_mp",
+    "account_name": "青实高国际",
+    "account_group": "QEHSI青实高国际",
+    "status": "active"
+  }
+]
