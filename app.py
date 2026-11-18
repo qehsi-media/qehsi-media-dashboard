@@ -29,8 +29,8 @@ except Exception as exc:  # 初始化失败时在页面上直接暴露原因
     ok, detail = False, f"{type(exc).__name__}: {exc}"
 
 if ok:
-    st.success(f"数据库连接正常：{DB_PATH}")
-    st.caption(f"表记录数：{detail}")
+    st.success(f"数据库连接正常")
+    st.caption(f"{detail}")
 else:
     st.error(f"数据库连接失败：{detail}")
 
