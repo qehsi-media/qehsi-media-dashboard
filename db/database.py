@@ -155,10 +155,10 @@ class _DbConnection:
 
         # SQLite 的 BEGIN 事务已由 conn 默认开启
         if self._backend == "postgres":
-            pg_cursor = self._conn.cursor()
-            wrapper = _PostgresCursor(pg_cursor)
+            wrapper = _PostgresCursor(self._conn.cursor())
             if params is None:
                 params = ()
+            wrapper.execute(sql, params)  # 关键：必须真正执行 SQL
             return wrapper
 
         # sqlite3 分支
@@ -169,7 +169,9 @@ class _DbConnection:
     def executemany(self, sql: str, params_seq):
         if self._backend == "postgres":
             sql = _convert_placeholders(sql, True)
-            return self._conn.cursor().executemany(sql, list(params_seq))
+            pg_cursor = self._conn.cursor()
+            pg_cursor.executemany(sql, list(params_seq))
+            return _PostgresCursor(pg_cursor)
         return self._conn.executemany(sql, list(params_seq))
 
     def executescript(self, script: str):
