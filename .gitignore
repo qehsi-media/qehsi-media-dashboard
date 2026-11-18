@@ -1,0 +1,22 @@
+# Python 虚拟环境
+venv/
+.venv/
+env/
+
+# Python 缓存
+__pycache__/
+*.pyc
+*.pyo
+
+# macOS
+.DS_Store
+
+# SQLite 数据库文件
+*.db
+
+# Streamlit
+.streamlit/secrets.toml
+
+# 上传文件
+data/uploads/*
+!data/uploads/.gitkeep
