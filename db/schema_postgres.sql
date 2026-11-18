@@ -1,5 +1,3 @@
-"""PostgreSQL 兼容的建表语句（Supabase 用）。"""
-
 CREATE TABLE IF NOT EXISTS accounts (
     account_id    TEXT PRIMARY KEY,
     platform      TEXT NOT NULL,
