@@ -324,7 +324,8 @@ def check_connection() -> tuple[bool, str]:
     try:
         counts = {}
         for table in TABLES:
-            counts[table] = conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
+            row = conn.execute(f"SELECT COUNT(*) AS c FROM {table}").fetchone()
+            counts[table] = row["c"] if isinstance(row, dict) else row[0]
     except Exception as exc:
         return False, f"{backend}: {exc}"
     finally:

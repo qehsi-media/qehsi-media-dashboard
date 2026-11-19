@@ -27,13 +27,18 @@ def month_analysis_window(month: str) -> tuple[str, str]:
 def fetch_window_contents(start_time: str, end_time: str) -> list[dict]:
     """读取指定闭区间内的有效发布时间内容。"""
     conn = get_connection()
+    date_pattern = (
+        "publish_time ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}'"
+        if conn.backend == "postgres"
+        else "publish_time GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]*'"
+    )
     try:
         rows = conn.execute(
             f"""
             SELECT {CONTENT_COLUMNS}
             FROM contents
             WHERE publish_time BETWEEN ? AND ?
-              AND publish_time GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]*'
+              AND {date_pattern}
             ORDER BY publish_time DESC, id DESC
             """,
             (start_time, end_time),

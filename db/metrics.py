@@ -8,12 +8,17 @@ MONTH_FILTER = "substr(publish_time, 1, 7) = ?"
 def fetch_available_months() -> list[str]:
     """返回内容表中可识别的月份，格式 YYYY-MM。"""
     conn = get_connection()
+    date_pattern = (
+        "publish_time ~ '^[0-9]{4}-[0-9]{2}-'"
+        if conn.backend == "postgres"
+        else "publish_time GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-*'"
+    )
     try:
         rows = conn.execute(
-            """
+            f"""
             SELECT DISTINCT substr(publish_time, 1, 7) AS month
             FROM contents
-            WHERE publish_time GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-*'
+            WHERE {date_pattern}
               AND substr(publish_time, 6, 2) BETWEEN '01' AND '12'
             ORDER BY month DESC
             """
