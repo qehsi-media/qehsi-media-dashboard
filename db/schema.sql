@@ -58,3 +58,14 @@ CREATE TABLE IF NOT EXISTS analysis_reports (
     report_content TEXT NOT NULL,
     created_at     TEXT NOT NULL DEFAULT (datetime('now', 'localtime'))
 );
+
+CREATE TABLE IF NOT EXISTS activities (
+    id                 INTEGER PRIMARY KEY AUTOINCREMENT,
+    activity_name      TEXT NOT NULL,
+    activity_date      TEXT,
+    goal               TEXT,
+    suggested_accounts TEXT,
+    battle_plan        TEXT,
+    status             TEXT NOT NULL DEFAULT '筹备中',
+    created_at         TEXT NOT NULL DEFAULT (datetime('now', 'localtime'))
+);

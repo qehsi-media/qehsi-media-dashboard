@@ -5,6 +5,13 @@ from db.database import get_connection
 MONTH_FILTER = "substr(publish_time, 1, 7) = ?"
 
 
+def shift_month(month: str, offset: int) -> str:
+    """返回相对 month 偏移 offset 个月的 YYYY-MM。"""
+    year, month_number = (int(part) for part in month.split("-"))
+    total = year * 12 + (month_number - 1) + offset
+    return f"{total // 12:04d}-{total % 12 + 1:02d}"
+
+
 def fetch_available_months() -> list[str]:
     """返回内容表中可识别的月份，格式 YYYY-MM。"""
     conn = get_connection()

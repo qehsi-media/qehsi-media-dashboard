@@ -132,6 +132,8 @@ def analyze_window_contents(
                     "total_interactions": interactions,
                     "hit_ratio": ratio,
                     "link": row["link"],
+                    "content_type": row["content_type"],
+                    "topic": row["topic"],
                 }
             )
             stat["hit_count"] += 1
@@ -163,9 +165,11 @@ def aggregate_cross_platform(contents: list[dict], dimension: str) -> list[dict]
                 "label": label,
                 "platform": row["platform"],
                 "content_count": 0,
+                "views": 0,
                 "total_interactions": 0,
             }
         grouped[key]["content_count"] += 1
+        grouped[key]["views"] += row["views"]
         grouped[key]["total_interactions"] += _interactions(row)
 
     platform_order = {platform: index for index, platform in enumerate(PLATFORM_LABELS)}

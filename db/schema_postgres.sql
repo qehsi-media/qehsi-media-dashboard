@@ -54,3 +54,14 @@ CREATE TABLE IF NOT EXISTS analysis_reports (
     report_content TEXT NOT NULL,
     created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+CREATE TABLE IF NOT EXISTS activities (
+    id                 BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    activity_name      TEXT NOT NULL,
+    activity_date      TEXT,
+    goal               TEXT,
+    suggested_accounts TEXT,
+    battle_plan        TEXT,
+    status             TEXT NOT NULL DEFAULT '筹备中',
+    created_at         TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
