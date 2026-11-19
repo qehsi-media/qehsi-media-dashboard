@@ -229,7 +229,10 @@ def get_connection() -> _DbConnection:
                 print("[db] psycopg/psycopg2 未安装，回退到 SQLite")
                 url = None
         else:
-            conn = psycopg.connect(url)
+            # Supabase 连接池（transaction 模式）不支持服务端预编译语句，
+            # psycopg3 默认会在重复执行后自动 PREPARE，导致
+            # DuplicatePreparedStatement（_pg3_0 已存在）。关闭预编译即可。
+            conn = psycopg.connect(url, prepare_threshold=None)
             return _DbConnection("postgres", conn)
 
     # 默认 SQLite
