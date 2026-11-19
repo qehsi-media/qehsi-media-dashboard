@@ -90,7 +90,14 @@ def _prepare_dataframe(df: pd.DataFrame) -> pd.DataFrame:
         and any(_text(value) for value in df[column].tolist())
     ]
     if unnamed_nonempty:
-        raise ValueError("检测到表头为空的列，请检查文件第一行是否为完整列名。")
+        # 表头没识别到（如标题行在上方），用占位列名保留数据，交给用户手动映射
+        df = df.rename(
+            columns={
+                column: f"未命名列{index + 1}"
+                for index, column in enumerate(df.columns)
+                if column.lower().startswith("unnamed:")
+            }
+        )
 
     empty_unnamed = [
         column
@@ -102,12 +109,61 @@ def _prepare_dataframe(df: pd.DataFrame) -> pd.DataFrame:
 
     duplicated = df.columns[df.columns.duplicated()].tolist()
     if duplicated:
-        raise ValueError(f"列名重复：{'、'.join(duplicated)}")
+        # 重复列名加序号后缀，避免整份文件被拒
+        seen: dict[str, int] = {}
+        new_columns = []
+        for column in df.columns:
+            if df.columns.tolist().count(column) > 1:
+                seen[column] = seen.get(column, 0) + 1
+                new_columns.append(f"{column}_{seen[column]}")
+            else:
+                new_columns.append(column)
+        df.columns = new_columns
 
     nonempty_rows = df.apply(
         lambda row: any(_text(value) for value in row.tolist()), axis=1
     )
-    return df.loc[nonempty_rows].reset_index(drop=True)
+    df = df.loc[nonempty_rows].reset_index(drop=True)
+
+    # 丢弃整列为空的列（含 Excel 末尾的空白列）
+    keep_columns = [
+        column for column in df.columns if any(_text(value) for value in df[column].tolist())
+    ]
+    if keep_columns:
+        df = df[keep_columns]
+    return df
+
+
+def _detect_header_row(raw: pd.DataFrame) -> int:
+    """在前几行里找出最像表头的一行：取非空单元格数量接近最多值的最早一行。"""
+    limit = min(4, len(raw))
+    if limit == 0:
+        return 0
+    counts = [sum(1 for value in raw.iloc[i].tolist() if _text(value)) for i in range(limit)]
+    best = max(counts)
+    if best < 2:
+        return 0
+    threshold = best * 0.7
+    for index, count in enumerate(counts):
+        if count >= threshold:
+            return index
+    return 0
+
+
+def _frame_from_raw(raw: pd.DataFrame) -> pd.DataFrame:
+    """把不带表头的原始数据按识别出的表头行切分成 DataFrame。"""
+    if raw.empty:
+        return raw
+    raw = raw.fillna("")
+    header_row = _detect_header_row(raw)
+    header = [_text(value) for value in raw.iloc[header_row].tolist()]
+    data = raw.iloc[header_row + 1 :].copy()
+    data.columns = [
+        column if column else f"未命名列{index + 1}"
+        for index, column in enumerate(header)
+    ]
+    return _prepare_dataframe(data.reset_index(drop=True))
+
 
 
 def read_uploaded_file(file_name: str, content: bytes) -> pd.DataFrame:
@@ -130,32 +186,35 @@ def read_uploaded_file(file_name: str, content: bytes) -> pd.DataFrame:
         ]
         for encoding in encodings_to_try:
             try:
-                df = pd.read_csv(
+                raw = pd.read_csv(
                     BytesIO(content),
                     encoding=encoding,
+                    header=None,
                     dtype=str,
                     keep_default_na=False,
                 )
+                df = _frame_from_raw(raw)
                 # 成功读完后检查一下是不是乱码（如果所有列名都是 \uXXXX 或全问号）
                 columns_text = " ".join(df.columns.astype(str))
                 if "\ufffd" in columns_text or columns_text.count("?") > len(df.columns) * 0.5:
                     errors.append(f"{encoding}: 列名疑似乱码，跳过")
                     continue
-                return _prepare_dataframe(df)
+                return df
             except (UnicodeDecodeError, UnicodeError) as exc:
                 errors.append(f"{encoding}: {exc}")
             except pd.errors.ParserError as exc:
                 errors.append(f"{encoding}: {exc}")
         # 最后兜底：用 errors='replace' 强行读
         try:
-            df = pd.read_csv(
+            raw = pd.read_csv(
                 BytesIO(content),
                 encoding="utf-8",
                 encoding_errors="replace",
+                header=None,
                 dtype=str,
                 keep_default_na=False,
             )
-            return _prepare_dataframe(df)
+            return _frame_from_raw(raw)
         except Exception as exc:
             errors.append(f"utf-8+replace: {exc}")
         raise ValueError(
@@ -164,14 +223,16 @@ def read_uploaded_file(file_name: str, content: bytes) -> pd.DataFrame:
 
     if suffix == ".xlsx":
         try:
-            df = pd.read_excel(
+            raw = pd.read_excel(
                 BytesIO(content),
                 engine="openpyxl",
+                header=None,
+                dtype=str,
                 keep_default_na=False,
             )
         except Exception as exc:
             raise ValueError(f"Excel 读取失败：{exc}") from exc
-        return _prepare_dataframe(df)
+        return _frame_from_raw(raw)
 
     raise ValueError("仅支持 .csv 或 .xlsx 文件。")
 
