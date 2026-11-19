@@ -5,7 +5,13 @@ import hashlib
 import pandas as pd
 import streamlit as st
 
-from db.database import PLATFORM_LABELS, fetch_accounts, init_db
+from db.database import (
+    PLATFORM_LABELS,
+    count_contents,
+    delete_contents,
+    fetch_accounts,
+    init_db,
+)
 from db.importer import (
     REQUIRED_MAPPING_FIELDS,
     STANDARD_FIELDS,
@@ -16,6 +22,7 @@ from db.importer import (
     suggest_mapping,
     validate_mapping,
 )
+from db.metrics import fetch_available_months
 
 STATUS_LABELS = {
     "pending": "处理中",
@@ -182,3 +189,30 @@ if batches:
     )
 else:
     st.caption(f"暂无{PLATFORM_LABELS[platform]}上传记录。")
+
+st.divider()
+with st.expander("撤回错误上传（删除已入库数据）"):
+    st.caption("用于删除传错账号或传错文件的已入库内容。删除后需重新上传，操作不可撤销。")
+    clear_account = st.selectbox(
+        "要清理的账号",
+        options=["全部账号"] + [account["account_name"] for account in accounts],
+        key="clear_account",
+    )
+    months = fetch_available_months()
+    clear_month = st.selectbox(
+        "要清理的月份",
+        options=["全部月份"] + months,
+        key="clear_month",
+    )
+    target_account = None if clear_account == "全部账号" else clear_account
+    target_month = None if clear_month == "全部月份" else clear_month
+    pending = count_contents(platform, target_account, target_month)
+    st.write(
+        f"将删除：**{PLATFORM_LABELS[platform]}** / "
+        f"**{clear_account}** / **{clear_month}**，共 **{pending}** 条内容。"
+    )
+    confirm = st.checkbox("我确认删除这些数据", key="clear_confirm")
+    if st.button("执行删除", type="primary", disabled=not confirm or pending == 0):
+        deleted = delete_contents(platform, target_account, target_month)
+        st.success(f"已删除 {deleted} 条内容，可以重新上传正确的文件。")
+        st.rerun()

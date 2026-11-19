@@ -317,6 +317,57 @@ def fetch_accounts() -> list[dict]:
     return [dict(row) for row in rows]
 
 
+def count_contents(
+    platform: str | None = None,
+    account_name: str | None = None,
+    month: str | None = None,
+) -> int:
+    """统计 contents 中符合条件的记录数。"""
+    where, params = _content_filters(platform, account_name, month)
+    conn = get_connection()
+    try:
+        row = conn.execute(f"SELECT COUNT(*) AS c FROM contents{where}", params).fetchone()
+    finally:
+        conn.close()
+    return row["c"] if isinstance(row, dict) else row[0]
+
+
+def delete_contents(
+    platform: str | None = None,
+    account_name: str | None = None,
+    month: str | None = None,
+) -> int:
+    """删除 contents 中符合条件的记录，返回删除条数。"""
+    where, params = _content_filters(platform, account_name, month)
+    conn = get_connection()
+    try:
+        before = conn.execute(f"SELECT COUNT(*) AS c FROM contents{where}", params).fetchone()
+        total = before["c"] if isinstance(before, dict) else before[0]
+        conn.execute(f"DELETE FROM contents{where}", params)
+        conn.commit()
+    finally:
+        conn.close()
+    return total
+
+
+def _content_filters(
+    platform: str | None, account_name: str | None, month: str | None
+) -> tuple[str, tuple]:
+    conditions: list[str] = []
+    params: list[str] = []
+    if platform:
+        conditions.append("platform = ?")
+        params.append(platform)
+    if account_name:
+        conditions.append("account_name = ?")
+        params.append(account_name)
+    if month:
+        conditions.append("substr(publish_time, 1, 7) = ?")
+        params.append(month)
+    where = f" WHERE {' AND '.join(conditions)}" if conditions else ""
+    return where, tuple(params)
+
+
 def check_connection() -> tuple[bool, str]:
     """检查数据库是否可连接，并返回各表记录数摘要。"""
     backend = get_connection().backend
