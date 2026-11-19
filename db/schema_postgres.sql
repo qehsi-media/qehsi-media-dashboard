@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS accounts (
 );
 
 CREATE TABLE IF NOT EXISTS upload_batches (
-    id          GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    id          BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     platform    TEXT NOT NULL,
     file_name   TEXT NOT NULL,
     upload_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS upload_batches (
 );
 
 CREATE TABLE IF NOT EXISTS contents (
-    id            GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    id            BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     platform      TEXT NOT NULL,
     account_name  TEXT NOT NULL,
     content_title TEXT NOT NULL,
@@ -40,7 +40,7 @@ CREATE INDEX IF NOT EXISTS idx_contents_publish_time ON contents (publish_time);
 CREATE INDEX IF NOT EXISTS idx_contents_topic ON contents (topic);
 
 CREATE TABLE IF NOT EXISTS field_mappings (
-    id            GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    id            BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     platform      TEXT NOT NULL,
     source_column TEXT NOT NULL,
     target_field  TEXT NOT NULL,
@@ -49,7 +49,7 @@ CREATE TABLE IF NOT EXISTS field_mappings (
 );
 
 CREATE TABLE IF NOT EXISTS analysis_reports (
-    id             GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    id             BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     report_month   TEXT NOT NULL,
     report_content TEXT NOT NULL,
     created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
