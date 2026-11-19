@@ -33,7 +33,7 @@ STATUS_LABELS = {
 
 st.set_page_config(page_title="数据上传", page_icon="📤", layout="wide")
 st.title("数据上传")
-st.caption("支持抖音、视频号、公众号。数据仅来自手动上传的 CSV/XLSX 文件，不使用自动登录或数据抓取。")
+st.caption("支持抖音、视频号、公众号。数据仅来自手动上传的 CSV/XLS/XLSX 文件，不使用自动登录或数据抓取。")
 
 init_db()
 all_accounts = fetch_accounts()
@@ -54,12 +54,12 @@ account_name = st.selectbox(
 )
 uploaded_file = st.file_uploader(
     f"选择{PLATFORM_LABELS[platform]}后台导出的文件",
-    type=["csv", "xlsx"],
+    type=["csv", "xls", "xlsx"],
     accept_multiple_files=False,
 )
 
 if uploaded_file is None:
-    st.info("请先上传 CSV 或 XLSX 文件。CSV 将自动尝试 UTF-8 和 GBK 编码。")
+    st.info("请先上传 CSV、XLS 或 XLSX 文件。公众号后台的 tendency_*.xls 可直接选择；CSV 将自动尝试 UTF-8 和 GBK 编码。")
 else:
     content = uploaded_file.getvalue()
     try:

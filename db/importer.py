@@ -5,7 +5,7 @@ import re
 import sqlite3
 from collections import Counter
 from datetime import date, datetime
-from io import BytesIO
+from io import BytesIO, StringIO
 from pathlib import Path
 
 import pandas as pd
@@ -167,7 +167,7 @@ def _frame_from_raw(raw: pd.DataFrame) -> pd.DataFrame:
 
 
 def read_uploaded_file(file_name: str, content: bytes) -> pd.DataFrame:
-    """读取 CSV/XLSX；CSV 依次尝试多种编码。"""
+    """读取 CSV/XLS/XLSX；CSV 依次尝试多种编码。"""
     suffix = Path(file_name).suffix.lower()
     if suffix == ".csv":
         errors = []
@@ -221,20 +221,46 @@ def read_uploaded_file(file_name: str, content: bytes) -> pd.DataFrame:
             f"CSV 读取失败，已尝试多种编码：{', '.join(errors[:3])}..."
         ) from None
 
-    if suffix == ".xlsx":
+    if suffix in {".xlsx", ".xls"}:
+        excel_error = None
         try:
             raw = pd.read_excel(
                 BytesIO(content),
-                engine="openpyxl",
                 header=None,
                 dtype=str,
                 keep_default_na=False,
             )
+            return _frame_from_raw(raw)
         except Exception as exc:
-            raise ValueError(f"Excel 读取失败：{exc}") from exc
-        return _frame_from_raw(raw)
+            excel_error = exc
+        # 公众号导出的 .xls 有时实际是 HTML 表格，改用 read_html 兜底
+        try:
+            text = None
+            for encoding in ("utf-8-sig", "gb18030", "utf-16"):
+                try:
+                    text = content.decode(encoding)
+                    break
+                except (UnicodeDecodeError, UnicodeError):
+                    continue
+            if text is None:
+                text = content.decode("utf-8", errors="replace")
+            tables = pd.read_html(StringIO(text))
+        except Exception:
+            tables = []
+        if tables:
+            table = tables[0]
+            has_named_columns = any(
+                not str(column).startswith("Unnamed") for column in table.columns
+            )
+            if has_named_columns:
+                return _prepare_dataframe(table.reset_index(drop=True))
+            return _frame_from_raw(table)
+        raise ValueError(
+            f"Excel 读取失败：{excel_error}。"
+            "如为公众号后台导出文件，请先用 Excel 另存为 .xlsx 后重试。"
+        ) from None
 
-    raise ValueError("仅支持 .csv 或 .xlsx 文件。")
+    raise ValueError("仅支持 .csv、.xls 或 .xlsx 文件。")
 
 
 def load_saved_mapping(platform: str) -> dict[str, str]:
